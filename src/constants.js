@@ -1,0 +1,1 @@
+export const DB_NAME="videotube"// this is our database name we can also write this in enviornment variable file also
