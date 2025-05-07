@@ -28,7 +28,7 @@ const app=express()
 (async () => {
     try{
      await mongoose.connect(${process.env.MONGO_URL}/${DB_NAME}) //here we are connecting to database
-     //app.on eek listener event ha jo humare app ko listen krti ha or agr error aaya ki app humara database se connect hua tb yeh use hota ha
+     //app.on eek listener event ha jo humare app ko listen krti ha or agr error aaya ki app humara database se connect nhi hua tb yeh use hota ha
     app.on("error",(error) => {        
 
         console.log("error",error);
