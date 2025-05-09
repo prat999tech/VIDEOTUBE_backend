@@ -8,12 +8,25 @@
 import connectDB from"./db/index._db.js";
 //require('dotenv').config({path:'./env'})
 import dotenv from 'dotenv';
+import {app} from "./app.js"
 dotenv.config({ path: './env' });
 
 connectDB()
+/////////////////////////////////////////////////////////////////////
+//in db file we write database connection  async function and async returns promise so if there is error in connecting to db we handle with .then as async returns promise so we use .then and in .then hum log jo app.js m app bna rhe ha usko listen krenge taaki humari application(app) database ko listen krr paye or .catch ka use krenge agr database connection nhi hua ha usko handle krne ke liye
+.then(()=>{
+    app.listen(process.env.PORT||8000,() => {
+        console.log(`app is listening on port ${process.env.PORT}`);
+        
+    })
+    
+})
+.catch((error)=>{
+    console.log("mongo db connection failed!!!",error)
+})
+//iss block m jitna bhi code ha yeh jb humara database connect ho jata phir hum app ko listen krenge taaki yeh humare database ko listen kr paye 
 
-
-
+///////////////////////////////////////////////////
 
 
 
