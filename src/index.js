@@ -80,7 +80,7 @@ connectDB()
         import('./app.js')
             .then(({ app }) => { // Use dynamic import and destructure 'app'
                 // Start the Express application server
-                app.listen(process.env.PORT || 8000, () => {
+                app.listen(process.env.PORT || 8001, () => {
                     console.log(`⚙️ Server is running on port : ${process.env.PORT || 8000}`);
                 });
             })

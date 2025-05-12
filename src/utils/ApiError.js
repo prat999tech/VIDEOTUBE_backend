@@ -1,4 +1,4 @@
-class ApiError extends Error { // Line 1: Class definition and inheritance
+class apiError extends Error { // Line 1: Class definition and inheritance
     constructor( // Line 2: Constructor start
         statusCode, // Line 3: statusCode parameter
         message= "Something went wrong", // Line 4: message parameter with default value
@@ -21,7 +21,7 @@ class ApiError extends Error { // Line 1: Class definition and inheritance
     } // Line 19: Constructor body end
 } // Line 20: Class definition end
 
-export {ApiError} // Line 22: Export the class
+export {apiError} // Line 22: Export the class
 /*
 
 

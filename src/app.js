@@ -13,7 +13,8 @@ app.use(cors({
 app.use(express.json({limit:"10kb"}))//here to add middleware we use ".use" function and here we are adding middleware to limit the size of the data that can be sent in the request
 app.use(express.urlencoded({extended:false,limit:"10kb"}))//here we are adding middleware, agar humare pass request url se aayi toh isko decode krne ke liye use krte ha or agr m "aap.use(express.urlencoded({limit:"10kb"}))" yeh bhi likhta tb bhi kaam ho jata
 app.use(express.static("./public"))//agar kuch file ya images aayi unko store rkhne ke liye use krte h or usko store krne ke liye humne alg se public folder bnaya ha
-app.use(cookieParser())//cookieParser middleware use krke hum cookie ko access kr skte h or set kr skte h
+app.use(cookieParser())//cookieParser middleware use krke hum cookie ko access kr skte h or set kr skte h or yeh as a object add ho jayega 'req' object m
+
 
 ////////////////////////////////////////////////////////////////////////////////////
   
@@ -27,19 +28,6 @@ app.use("/api/v1/users",userRouter) //jaise hi kisi ne "/api/v1/users" likha toh
 //yaha pr humara url agr humne users likha h "http://localhost:8000/api/v1/users"" toh iss url ke through control user controller file m chla jayega fir wha pr humne alg alg route likhe honge jaise hume agr register pr jaana ha ya contacts pr jaana
 //"/api/v1/users"-yeh sirf likhna ka tarika ha
 export {app};
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
