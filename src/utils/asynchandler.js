@@ -25,7 +25,7 @@ const asyncHandler = (requestHandler) => {
 // Export the asyncHandler function so it can be imported and used in other files.
 // This is the ONLY export statement for asyncHandler in this file.
 export { asyncHandler }
-
+ //we use this method if we have to handle web request only
 
 
 

@@ -3,6 +3,8 @@ import {apiError} from "../utils/apiError.js";
 import {User} from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js"
+import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
 const generateAccessAndRefreshTokens=async(userId)=>{
     try{
         
@@ -160,7 +162,7 @@ const loginUser=asyncHandler(async(req,res)=>{
       }
       const{accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)//yha function call hua ha or  hume function return krega accesstoken or refresh token usko humne save kr lia ha 
        
-      const loggedInUser = await User.findById(user._id).select("-password -refreshToken");//This line is like saying, "Now that the refresh token has been saved to the album, go back to the album again and get me the user's photo." This time, the photo you get (loggedInUser) is the updated one that includes the refresh token.
+      const loggedInUser = await User.findById(user._id).select("-password -refreshToken");//This line is like saying, "Now that the refresh token has been saved to the album, go back to the album again and get me the user's photo." This time, the photo you get (loggedInUser) is the updated one that includes the refresh token.( explained in "onenote")
        //////COOKIES/////
      /*
      you don't need to import cookie-parser directly into your user.controller.js file to use the .cookie() method on the res object.
@@ -209,15 +211,276 @@ const logoutUser=asyncHandler(async (req,res)=>{
        .json(new apiResponse(200,{message:"user logged out successfully"},"user logged out successfully"))
     
 })
-export {registerUser,loginUser,logoutUser}
+  // now we will make an end point where user can refresh its token when access token gets expired//
+     const refreshAcessToken=asyncHandler(async (req,res)=>{
+        const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken//here we are accessing refresh token as it is in our cookies or for mobile app it is in our header body
+        if(!incomingRefreshToken){
+            throw new apiError(401,"refresh token is required")
+        }
+        const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+        const user=await User.findById(decodedToken?._id)
+        if(!user){
+            throw new apiError(401,"unauthorized reinvalid refresh token")
+      
+        }
+        //'user.refreshToken=refreshToken ' iska use krke humne refresh token ko save krwaya tha user m or jo abhi humne decode kra ha 'incoming refresh token' isse jo user dhundha ha hummne woh same hona chhaie issliye checking kenge 
 
+        if(incomingRefreshToken!=user.refreshToken){
+            throw new apiError(401,"refresh token expired or user expired")
+        }
+        const options={
+            httpOnly:true,
+            secure:true
+        }
+       const {accessToken,newRefreshToken}= await generateAccessAndRefreshTokens(user._id)
+        return res
+        .status(200)
+        .cookie("accessToken",accessToken,options)
+        .cookie("refreshToken",newRefreshToken,options)
+        .json(
+            new apiResponse(
+                200,
+                {accessToken,refreshToken:newRefreshToken},
+                "Access token refreshed"
+            )
+        )
+     })
+     const changeCurrentPassword=asyncHandler(async (req,res)=>{
+
+        const {oldPassword,newPassword,confirmPassword}=req.body
+        if(!(newPassword===confirmPassword))  {       
+            throw new apiError(400,"password and confirm password should be same")
+        }
+        const user=await User.findById(req.user._id)//abb mera user phle se authorized ha loggedin ha jo middleware humne bnaya ha auth ka usse pta chla or usmai 'req.user' m authorized user humme daal dia
+        const isPasswordCorrect= await user.isPasswordCorrect(oldPassword)
+        if(!isPasswordCorrect){
+            throw new apiError(400,"old password is incorrect")
+        }
+        user.password=newPassword //user ha uske andr field ha password usmai humne new password update krdia
+       await user.save({validateBeforeSave:false})//yha humne validation ko false krdia kyuki hume sirf password update krna ha
+         return res.status(200).json(
+            new apiResponse(200,user,"password updated successfully")
+         )
+     })
+     const getCurrentUser=asyncHandler(async (req,res)=>{
+        return res.status(200)
+        .json(
+            new apiResponse(200,req.user,"user fetched successfully")
+        )//kyuki mera user phle se checked ha or woh chekced user ko humne req.user m save kra hua ha toh humne seedha whi access krwa lia
+
+     })
+     const updateAccountDetails=asyncHandler(async (req,res)=>{
+        const{fullName,email}=req.body
+        if(!(fullName||!email)){
+            throw new apiError(400,"fullname and email is required")
+        }
+        const user=User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set:{
+                    fullName,
+                    email:email
+                }
+            },
+            {new:true}//update hone ke bad jo infomeration ha woh return hoti ha
+        ).select("-password")
+        return res.status(200).json(
+            new apiResponse(200,user,"account details updated successfully")
+        )
+
+    })
+
+     const updateUserAvatar=asyncHandler(async(req,res)=>
+    {
+        const avatarLocalPath=req.file?.path
+        if(!avatarLocalPath){
+            throw new apiError(400,"avatar is required")
+        }
+        const avatar=await uploadOnCloudinary(avatarLocalPath)
+        if(!avatar.url){
+            throw new apiError(400,"avatar upload failed")
+        }
+        const user=User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set:{
+                    avatar:avatar.url
+                }
+            },
+            {new:true}
+        )
+        return res.status(200).json(
+            new apiResponse(200,user,"avatar updated successfully")
+            )
+        })
+       
+        const updateCoverImage=asyncHandler(async(req,res)=>
+            {
+                const coverImageLocalPath=req.file?.path
+                if(!coverImageLocalPath){
+                    throw new apiError(400,"coverimage is required")
+                }
+                const coverImage=await uploadOnCloudinary(coverImageLocalPath)
+                if(!coverImage.url){
+                    throw new apiError(400,"cover upload failed")
+                }
+                const user=await User.findByIdAndUpdate(
+                    req.user._id,
+                    {
+                        $set:{
+                            coverImage:coverImage.url
+                        }
+                    },
+                    {new:true}
+                ).select("-password")
+                return res.status(200).json(
+                    new apiResponse(200,user,"cover image updated successfully")
+                    )
+                  
+                })
+                const getUserChannelProfile = asyncHandler(async(req, res) => {
+                    const {username} = req.params
+                
+                    if (!username?.trim()) {
+                        throw new apiError(400, "username is missing")
+                    }
+                
+                    const channel = await User.aggregate([
+                        {
+                            $match: {
+                                username: username?.toLowerCase()
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "subscriptions",
+                                localField: "_id",
+                                foreignField: "channel",
+                                as: "subscribers"
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "subscriptions",
+                                localField: "_id",
+                                foreignField: "subscriber",
+                                as: "subscribedTo"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                subscribersCount: {
+                                    $size: "$subscribers"
+                                },
+                                channelsSubscribedToCount: {
+                                    $size: "$subscribedTo"
+                                },
+                                isSubscribed: {
+                                    $cond: {
+                                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                                        then: true,
+                                        else: false
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            $project: {
+                                fullName: 1,
+                                username: 1,
+                                subscribersCount: 1,
+                                channelsSubscribedToCount: 1,
+                                isSubscribed: 1,
+                                avatar: 1,
+                                coverImage: 1,
+                                email: 1
+                
+                            }
+                        }
+                    ])
+                
+                    if (!channel?.length) {
+                        throw new apiError(404, "channel does not exists")
+                    }
+                
+                    return res
+                    .status(200)
+                    .json(
+                        new apiResponse(200, channel[0], "User channel fetched successfully")
+                    )
+                })
+                const getWatchHistory = asyncHandler(async(req, res) => {
+                    const user = await User.aggregate([
+                        {
+                            $match: {
+                                _id: new mongoose.Types.ObjectId(req.user._id)
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "videos",
+                                localField: "watchHistory",
+                                foreignField: "_id",
+                                as: "watchHistory",
+                                pipeline: [
+                                    {
+                                        $lookup: {
+                                            from: "users",
+                                            localField: "owner",
+                                            foreignField: "_id",
+                                            as: "owner",
+                                            pipeline: [
+                                                {
+                                                    $project: {
+                                                        fullName: 1,
+                                                        username: 1,
+                                                        avatar: 1
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        $addFields:{
+                                            owner:{
+                                                $first: "$owner"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ])
+                
+                    return res
+                    .status(200)
+                    .json(
+                        new ApiResponse(
+                            200,
+                            user[0].watchHistory,
+                            "Watch history fetched successfully"
+                        )
+                    )
+                })
+                
+                    export {registerUser,
+                        loginUser,
+                        logoutUser,
+                        refreshAcessToken,
+                        changeCurrentPassword,
+                        getCurrentUser,
+                        updateAccountDetails,
+                        updateUserAvatar,
+                        updateCoverImage,
+                        getUserChannelProfile,
+                        getWatchHistory}
 
 
 // jo bhi router or controller se export ho rha ha usko hum zyadar app.js m import krte ha
 //I understand you're asking about how req.user?._id reliably identifies the authenticated user in the updateAccountDetails controller, given that the verifyJWT middleware sets req.user = user. You want to know how the system ensures that this req.user is indeed the authenticated one and not some other user data that might be on the req object.
 //The crucial point is that all middleware functions and the final route handler in a single request chain receive the same req object. When verifyJWT modifies the req object by adding req.user = user;, that exact same req object, now with the user property attached, is passed to the next function in the chain, which is your updateAccountDetails controller.
 
-
+//endpoint=url
 
 
 
