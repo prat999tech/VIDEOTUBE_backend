@@ -252,7 +252,7 @@ const logoutUser=asyncHandler(async (req,res)=>{
             throw new apiError(400,"password and confirm password should be same")
         }
         const user=await User.findById(req.user._id)//abb mera user phle se authorized ha loggedin ha jo middleware humne bnaya ha auth ka usse pta chla or usmai 'req.user' m authorized user humme daal dia
-        const isPasswordCorrect= await user.isPasswordCorrect(oldPassword)
+        const isPasswordCorrect= await user.isPasswordCorrect(oldPassword)//The dot (.) is the member access operator. It tells JavaScript: "Look inside the object on my left (user) and find the member (property or method) whose name is on my right (isPasswordCorrect)."
         if(!isPasswordCorrect){
             throw new apiError(400,"old password is incorrect")
         }
