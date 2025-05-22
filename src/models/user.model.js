@@ -59,7 +59,7 @@ userSchema.pre("save",async function(next){ //yeh('.pre()') ek event listener ki
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////
 //yaha hum check krenge ki password sahi ya nhi or iske liye custom method design krenge
-userSchema.methods.isPasswordCorrect=async function(password){
+userSchema.methods.isPasswordCorrect=async function(password){  //You defined isPasswordCorrect on userschema.methods. This means you've told Mongoose: "Whenever you create a document (an instance) from this UserSchema, make sure it has a function named isPasswordCorrect available on it."
     return await bcrypt.compare(password,this.password)
 }
 //yeh '.compaer(). return krta ha true or false
